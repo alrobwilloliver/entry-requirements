@@ -7,10 +7,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
 var entryFormTemplate *template.Template
+var resultTemplate *template.Template
 
 type Client struct {
 	apiKey string
@@ -21,6 +23,7 @@ type Trip struct {
 	StartingPoint string
 	Destination   string
 	Date          time.Time
+	Result        TripInfo
 }
 
 type TripInfo struct {
@@ -58,6 +61,18 @@ type TripInfo struct {
 }
 
 var baseUrl string
+
+func Capitalize(s string) string {
+	return strings.Title(strings.ToLower(s))
+}
+
+func init() {
+	var err error
+	entryFormTemplate, err = template.ParseFiles("entry.html")
+	if err != nil {
+		panic(err)
+	}
+}
 
 func (c *Client) GetTripRequirements(trip *Trip) (*TripInfo, error) {
 	baseUrl = "https://sandbox.travelperk.com/travelsafe/restrictions"
@@ -119,15 +134,9 @@ func main() {
 func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Context-Type", "text/html")
 
-	var err error
-	entryFormTemplate, err = template.ParseFiles("entry.html")
-	if err != nil {
-		panic(err)
-	}
-
 	t := Trip{}
 
-	err = entryFormTemplate.Execute(w, t)
+	err := entryFormTemplate.Execute(w, t)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -135,18 +144,39 @@ func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 
-	// date := time.Date(r.FormValue("date"))
 	t := Trip{
 		StartingPoint: r.FormValue("from"),
 		Destination:   r.FormValue("to"),
 		Date:          time.Now(),
 	}
+
 	trip, err := c.GetTripRequirements(&t)
+
 	if err != nil {
-		// fmt.Printf("\nReceived error: %v", err)
+		fmt.Printf("\nReceived error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	t.Result = *trip
+
+	resultTemplate, err = template.ParseFiles("result.html")
+	if err != nil {
+		panic(err)
+	}
+
+	input := `<h1>Origin: {{.Result.Origin.Name}} Destination: {{.Result.Destination.Name}}</h1>
+    <h2>{{capitalize .Result.AuthorizationStatus}}</h2>
+    {{.}}
+    <a href="/">Back to search</a>`
+
+	fmap := template.FuncMap{
+		"capitalize": Capitalize,
+	}
+	resultTemplate, err = resultTemplate.Funcs(fmap).Parse(input)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	resultTemplate.Execute(w, t)
 	fmt.Printf("Get Trip Requirements: %v", trip)
 }
 
