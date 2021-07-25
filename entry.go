@@ -66,6 +66,12 @@ func Capitalize(s string) string {
 	return strings.Title(strings.ToLower(s))
 }
 
+func HandleDate(t time.Time) string {
+	newTime := t.String()
+	time, _ := time.Parse(newTime, newTime)
+	return time.Format("2021-11-01")
+}
+
 func init() {
 	var err error
 	entryFormTemplate, err = template.ParseFiles("entry.html")
@@ -166,11 +172,19 @@ func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 
 	input := `<h1>Origin: {{.Result.Origin.Name}} Destination: {{.Result.Destination.Name}}</h1>
     <h2>{{capitalize .Result.AuthorizationStatus}}</h2>
-    {{.}}
+	<p>{{.Result.Summary}}. {{.Result.Details}} as of {{.Result.StartDate}}.<p>
+	{{range .Result.Requirements}}
+		<p>{{.Summary}}.</p>
+		{{range .Documents}}
+			<p>Fill in documents prior to arrival: </p>
+			<a href="{{.document_url}}">{{.document_url}}</a>
+		{{end}}
+	{{end}}
     <a href="/">Back to search</a>`
 
 	fmap := template.FuncMap{
 		"capitalize": Capitalize,
+		"handleDate": HandleDate,
 	}
 	resultTemplate, err = resultTemplate.Funcs(fmap).Parse(input)
 	if err != nil {
