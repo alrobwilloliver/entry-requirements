@@ -7,12 +7,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 )
 
 var entryFormTemplate *template.Template
-var resultTemplate *template.Template
+var TripStruct *Trip
 
 type Client struct {
 	apiKey string
@@ -20,8 +19,8 @@ type Client struct {
 }
 
 type Trip struct {
-	StartingPoint string
-	Destination   string
+	StartingPoint string `json:"from"`
+	Destination   string `json:"to"`
 	Date          time.Time
 	Result        TripInfo
 }
@@ -61,24 +60,6 @@ type TripInfo struct {
 }
 
 var baseUrl string
-
-func Capitalize(s string) string {
-	return strings.Title(strings.ToLower(s))
-}
-
-func HandleDate(t time.Time) string {
-	newTime := t.String()
-	time, _ := time.Parse(newTime, newTime)
-	return time.Format("2021-11-01")
-}
-
-func init() {
-	var err error
-	entryFormTemplate, err = template.ParseFiles("entry.html")
-	if err != nil {
-		panic(err)
-	}
-}
 
 func (c *Client) GetTripRequirements(trip *Trip) (*TripInfo, error) {
 	baseUrl = "https://sandbox.travelperk.com/travelsafe/restrictions"
@@ -128,9 +109,15 @@ func (c *Client) doRequest(req *http.Request, result interface{}) (err error) {
 func main() {
 	c := NewClient(os.Getenv("entryApi"))
 
+	var err error
+	entryFormTemplate, err = template.ParseFiles("entry.gohtml")
+	if err != nil {
+		panic(err)
+	}
+
 	http.HandleFunc("/", c.handler)
 	http.HandleFunc("/searchEntry", c.searchEntry)
-	err := http.ListenAndServe(":3000", nil)
+	err = http.ListenAndServe(":3000", nil)
 	if err != nil {
 		fmt.Printf("\nReceived error: %v", err)
 		return
@@ -138,59 +125,38 @@ func main() {
 }
 
 func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Context-Type", "text/html")
-
-	t := Trip{}
-
-	err := entryFormTemplate.Execute(w, t)
+	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
+	err := entryFormTemplate.Execute(w, TripStruct)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Context-Type", "application/json")
 
-	t := Trip{
-		StartingPoint: r.FormValue("from"),
-		Destination:   r.FormValue("to"),
-		Date:          time.Now(),
+	fmt.Printf("body %v", r.Body)
+	err := json.NewDecoder(r.Body).Decode(&TripStruct)
+	if err != nil {
+		fmt.Print("decode error")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	// fmt.Printf("trip %s, %s", t.Destination, t.StartingPoint)
 
-	trip, err := c.GetTripRequirements(&t)
+	trip, err := c.GetTripRequirements(TripStruct)
 
 	if err != nil {
 		fmt.Printf("\nReceived error: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	t.Result = *trip
+	TripStruct.Result = *trip
 
-	resultTemplate, err = template.ParseFiles("result.html")
-	if err != nil {
-		panic(err)
-	}
-
-	input := `<h1>Origin: {{.Result.Origin.Name}} Destination: {{.Result.Destination.Name}}</h1>
-    <h2>{{capitalize .Result.AuthorizationStatus}}</h2>
-	<p>{{.Result.Summary}}. {{.Result.Details}} as of {{.Result.StartDate}}.<p>
-	{{range .Result.Requirements}}
-		<p>{{.Summary}}.</p>
-		{{range .Documents}}
-			<p>Fill in documents prior to arrival: </p>
-			<a href="{{.document_url}}">{{.document_url}}</a>
-		{{end}}
-	{{end}}
-    <a href="/">Back to search</a>`
-
-	fmap := template.FuncMap{
-		"capitalize": Capitalize,
-		"handleDate": HandleDate,
-	}
-	resultTemplate, err = resultTemplate.Funcs(fmap).Parse(input)
+	err = entryFormTemplate.Execute(w, TripStruct)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-	resultTemplate.Execute(w, t)
+
 	fmt.Printf("Get Trip Requirements: %v", trip)
 }
 
