@@ -10,9 +10,6 @@ import (
 	"time"
 )
 
-var entryFormTemplate *template.Template
-var TripStruct *Trip
-
 type Client struct {
 	apiKey string
 	http.Client
@@ -59,18 +56,22 @@ type TripInfo struct {
 	} `json:"requirements"`
 }
 
-var baseUrl string
+var entryFormTemplate *template.Template
 
-func (c *Client) GetTripRequirements(trip *Trip) (*TripInfo, error) {
+// var errorTemplate *template.Template
+var baseUrl string
+var TripStruct Trip
+var tripData TripInfo
+
+func (c *Client) GetTripRequirements(trip Trip) (*TripInfo, error) {
 	baseUrl = "https://sandbox.travelperk.com/travelsafe/restrictions"
 	url := fmt.Sprintf(baseUrl+"?destination=%s&destination_type=country_code&origin=%s&origin_type=country_code&date=2020-10-15", trip.StartingPoint, trip.Destination)
-	var tripData *TripInfo
 	err := c.Get(url, &tripData)
 	if err != nil {
 		return nil, err
 	}
 
-	return tripData, nil
+	return &tripData, nil
 }
 
 func (c *Client) Get(url string, result interface{}) (err error) {
@@ -114,10 +115,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	mux := http.NewServeMux()
 
-	http.HandleFunc("/", c.handler)
-	http.HandleFunc("/searchEntry", c.searchEntry)
-	err = http.ListenAndServe(":3000", nil)
+	mux.HandleFunc("/", c.handler)
+	mux.HandleFunc("/searchEntry", c.searchEntry)
+	err = http.ListenAndServe(":3000", http.TimeoutHandler(mux, 5*time.Second, "Timed Out"))
 	if err != nil {
 		fmt.Printf("\nReceived error: %v", err)
 		return
@@ -126,22 +128,19 @@ func main() {
 
 func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
-	err := entryFormTemplate.Execute(w, TripStruct)
+	err := entryFormTemplate.Execute(w, nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Context-Type", "application/json")
-
-	fmt.Printf("body %v", r.Body)
-	err := json.NewDecoder(r.Body).Decode(&TripStruct)
-	if err != nil {
-		fmt.Print("decode error")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
-	// fmt.Printf("trip %s, %s", t.Destination, t.StartingPoint)
+	var from string
+	var to string
+	from = r.URL.Query().Get("from")
+	to = r.URL.Query().Get("to")
+	TripStruct.Destination = to
+	TripStruct.StartingPoint = from
 
 	trip, err := c.GetTripRequirements(TripStruct)
 
@@ -154,10 +153,10 @@ func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 
 	err = entryFormTemplate.Execute(w, TripStruct)
 	if err != nil {
+		fmt.Printf("err %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 
-	fmt.Printf("Get Trip Requirements: %v", trip)
 }
 
 func NewClient(apiKey string) *Client {

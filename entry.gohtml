@@ -6,7 +6,7 @@
     <section>
       <div class="flight" id="flightbox">
         
-        <form onsubmit="getEntryInfo()" id="search-form">
+        <form action="/searchEntry" id="search-form">
         
         <!-- FROM/TO -->
         <div id="flight-depart">
@@ -51,40 +51,10 @@
             {{end}}
           {{end}}
         {{else}}
-          <div>Error for some reason...<div/>
+          <div>{{.}}</div>
         {{end}}
         </div>
 </div>
-<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-<script>
-  const getData = async (from, to) => {
-    console.log("getData", from, to)
-    try {
-      await axios.post('/searchEntry', {
-        from,
-        to,
-      }, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }})
-    } catch (err) {
-      // console.log('err', err)
-      let error = new Error(err)
-      throw error
-    }
-  }
-
-  function getEntryInfo() {
-    document.getElementById("search-form").addEventListener('submit', async function(e) {
-      e.preventDefault()
-
-      const fromCountry = document.getElementById("dep-from").value
-      const toCountry = document.getElementById("dep-to").value
-      console.log(fromCountry, toCountry)
-      await getData(fromCountry, toCountry)
-    })
-  }
-</script>
 </body>
 
 </html>
