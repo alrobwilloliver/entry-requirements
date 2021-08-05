@@ -59,6 +59,7 @@ type TripInfo struct {
 var entryFormTemplate *template.Template
 
 // var errorTemplate *template.Template
+
 var baseUrl string
 var TripStruct Trip
 var tripData TripInfo
@@ -109,17 +110,15 @@ func (c *Client) doRequest(req *http.Request, result interface{}) (err error) {
 
 func main() {
 	c := NewClient(os.Getenv("entryApi"))
-
-	var err error
-	entryFormTemplate, err = template.ParseFiles("entry.gohtml")
-	if err != nil {
-		panic(err)
-	}
 	mux := http.NewServeMux()
 
+	fs := http.FileServer(http.Dir("./static"))
+	mux.Handle("/static/", http.StripPrefix("/static", fs))
 	mux.HandleFunc("/", c.handler)
 	mux.HandleFunc("/searchEntry", c.searchEntry)
-	err = http.ListenAndServe(":3000", http.TimeoutHandler(mux, 5*time.Second, "Timed Out"))
+	mux.HandleFunc("/error", c.error)
+	err := http.ListenAndServe(":3000", http.TimeoutHandler(mux, 5*time.Second, "Timed Out"))
+
 	if err != nil {
 		fmt.Printf("\nReceived error: %v", err)
 		return
@@ -128,13 +127,18 @@ func main() {
 
 func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
-	err := entryFormTemplate.Execute(w, nil)
+
+	entryFormTemplate := template.Must(template.ParseGlob("templates/*.html"))
+	err := entryFormTemplate.ExecuteTemplate(w, "layout", nil)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		panic(err)
 	}
 }
 
 func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
+
+	entryFormTemplate := template.Must(template.ParseGlob("templates/*.html"))
+
 	var from string
 	var to string
 	from = r.URL.Query().Get("from")
@@ -151,12 +155,11 @@ func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	TripStruct.Result = *trip
 
-	err = entryFormTemplate.Execute(w, TripStruct)
+	err = entryFormTemplate.ExecuteTemplate(w, "layout", TripStruct)
 	if err != nil {
 		fmt.Printf("err %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
-
 }
 
 func NewClient(apiKey string) *Client {
