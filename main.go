@@ -116,7 +116,6 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static", fs))
 	mux.HandleFunc("/", c.handler)
 	mux.HandleFunc("/searchEntry", c.searchEntry)
-	mux.HandleFunc("/error", c.error)
 	err := http.ListenAndServe(":3000", http.TimeoutHandler(mux, 5*time.Second, "Timed Out"))
 
 	if err != nil {
