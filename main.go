@@ -58,15 +58,13 @@ type TripInfo struct {
 
 var entryFormTemplate *template.Template
 
-// var errorTemplate *template.Template
-
 var baseUrl string
 var TripStruct Trip
 var tripData TripInfo
 
 func (c *Client) GetTripRequirements(trip Trip) (*TripInfo, error) {
 	baseUrl = "https://sandbox.travelperk.com/travelsafe/restrictions"
-	url := fmt.Sprintf(baseUrl+"?destination=%s&destination_type=country_code&origin=%s&origin_type=country_code&date=2020-10-15", trip.StartingPoint, trip.Destination)
+	url := fmt.Sprintf(baseUrl+"?destination=%s&destination_type=country_code&origin=%s&origin_type=country_code&date=2020-10-15", trip.Destination, trip.StartingPoint)
 	err := c.Get(url, &tripData)
 	if err != nil {
 		return nil, err
@@ -148,8 +146,8 @@ func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 	trip, err := c.GetTripRequirements(TripStruct)
 
 	if err != nil {
-		fmt.Printf("\nReceived error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		fmt.Printf("\nReceived error: %v", err.Error())
+		_ = entryFormTemplate.ExecuteTemplate(w, "error", err.Error())
 		return
 	}
 	TripStruct.Result = *trip
