@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -61,6 +62,10 @@ var entryFormTemplate *template.Template
 var baseUrl string
 var TripStruct Trip
 var tripData TripInfo
+
+func CapitalizeString(s string) string {
+	return strings.ToLower(strings.Title(s))
+}
 
 func (c *Client) GetTripRequirements(trip Trip) (*TripInfo, error) {
 	baseUrl = "https://sandbox.travelperk.com/travelsafe/restrictions"
@@ -125,8 +130,11 @@ func main() {
 func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Context-Type", "application/x-www-form-urlencoded")
 
-	entryFormTemplate := template.Must(template.ParseGlob("templates/*.html"))
-	err := entryFormTemplate.ExecuteTemplate(w, "layout", nil)
+	entryFormTemplate, err := template.New("layout.html").Funcs(template.FuncMap{"capital": strings.Title}).ParseGlob("templates/*html")
+	if err != nil {
+		panic(err)
+	}
+	err = entryFormTemplate.ExecuteTemplate(w, "layout", nil)
 	if err != nil {
 		panic(err)
 	}
@@ -134,8 +142,10 @@ func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 
-	entryFormTemplate := template.Must(template.ParseGlob("templates/*.html"))
-
+	entryFormTemplate, err := template.New("layout.html").Funcs(template.FuncMap{"capital": strings.Title}).ParseGlob("templates/*html")
+	if err != nil {
+		panic(err)
+	}
 	var from string
 	var to string
 	from = r.URL.Query().Get("from")

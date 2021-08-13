@@ -41,7 +41,7 @@
     <div id="results">
       {{if .}}
         <h1>Origin: {{.Result.Origin.Name}} Destination: {{.Result.Destination.Name}}</h1>
-        <h2>{{.Result.AuthorizationStatus}}</h2>
+        <h2>{{capital .Result.AuthorizationStatus}}</h2>
         <p>{{.Result.Summary}}. {{.Result.Details}} as of {{.Result.StartDate}}.<p>
         {{range .Result.Requirements}}
           <p>{{.Summary}}.</p>
