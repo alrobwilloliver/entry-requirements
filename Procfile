@@ -1,1 +1,1 @@
-web: ./entry-requirements
+web: govendor init
