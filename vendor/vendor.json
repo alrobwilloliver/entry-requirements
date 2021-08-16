@@ -2,5 +2,9 @@
 	"comment": "",
 	"ignore": "test",
 	"package": [],
-	"rootPath": "entry-requirements"
+	"rootPath": "entry-requirements",
+	"heroku": {
+        "install" : [ "./..." ],
+    	"goVersion": "go1.6"
+    }
 }
