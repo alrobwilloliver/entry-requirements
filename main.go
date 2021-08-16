@@ -107,12 +107,13 @@ func (c *Client) doRequest(req *http.Request, result interface{}) (err error) {
 
 func main() {
 	c := NewClient(os.Getenv("entryApi"))
+	port := os.Getenv("PORT")
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static", fs))
 	mux.HandleFunc("/", c.handler)
 	mux.HandleFunc("/searchEntry", c.searchEntry)
-	err := http.ListenAndServe(":3000", http.TimeoutHandler(mux, 5*time.Second, "Timed Out"))
+	err := http.ListenAndServe(":"+port, http.TimeoutHandler(mux, 5*time.Second, "Timed Out"))
 
 	if err != nil {
 		fmt.Printf("\nReceived error: %v", err)
