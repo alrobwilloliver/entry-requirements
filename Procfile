@@ -1,1 +1,1 @@
-web: ./entry-requirements
+web: go run main.go
