@@ -57,15 +57,9 @@ type TripInfo struct {
 	} `json:"requirements"`
 }
 
-var entryFormTemplate *template.Template
-
 var baseUrl string
 var TripStruct Trip
 var tripData TripInfo
-
-func CapitalizeString(s string) string {
-	return strings.ToLower(strings.Title(s))
-}
 
 func (c *Client) GetTripRequirements(trip Trip) (*TripInfo, error) {
 	baseUrl = "https://sandbox.travelperk.com/travelsafe/restrictions"
@@ -114,7 +108,6 @@ func (c *Client) doRequest(req *http.Request, result interface{}) (err error) {
 func main() {
 	c := NewClient(os.Getenv("entryApi"))
 	mux := http.NewServeMux()
-
 	fs := http.FileServer(http.Dir("./static"))
 	mux.Handle("/static/", http.StripPrefix("/static", fs))
 	mux.HandleFunc("/", c.handler)
@@ -134,6 +127,7 @@ func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
+
 	err = entryFormTemplate.ExecuteTemplate(w, "layout", nil)
 	if err != nil {
 		panic(err)
