@@ -1,1 +1,1 @@
-web: govendor init
+web: bin/entry-requirements

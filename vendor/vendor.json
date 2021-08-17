@@ -4,7 +4,7 @@
 	"package": [],
 	"rootPath": "entry-requirements",
 	"heroku": {
-        "install" : [ "./..." ],
+        "install" : [ "." ],
     	"goVersion": "go1.16"
     }
 }
