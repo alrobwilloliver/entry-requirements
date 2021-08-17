@@ -106,7 +106,7 @@ func (c *Client) doRequest(req *http.Request, result interface{}) (err error) {
 }
 
 func main() {
-	c := NewClient(os.Getenv("entryApi"))
+	c := NewClient(os.Getenv("ENTRYAPI"))
 	port := os.Getenv("PORT")
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("./static"))
