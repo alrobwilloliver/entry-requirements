@@ -8,8 +8,13 @@
 </head>
 <body>
   <div>
-      <h1 id="header">There was an error retrieving your data!</h1>
+    {{if .}}
+      <h1 id="header">{{.}}</h1>
       <img class="bg-img" src="/static/images/travel-error.jpeg">
+    {{else}}
+      <h1 id="header">There was an Error retrieving your data!</h1>
+      <img class="bg-img" src="/static/images/travel-error.jpeg">
+    {{end}}
   </div>
 </body>
 </html>

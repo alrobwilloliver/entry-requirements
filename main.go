@@ -69,12 +69,14 @@ func (c *Client) handler(w http.ResponseWriter, r *http.Request) {
 
 	entryFormTemplate, err := template.New("layout.html").Funcs(template.FuncMap{"capital": strings.Title}).ParseGlob("templates/*html")
 	if err != nil {
-		panic(err)
+		_ = entryFormTemplate.ExecuteTemplate(w, "error", "Failed to load the page!")
+		return
 	}
 
 	err = entryFormTemplate.ExecuteTemplate(w, "layout", nil)
 	if err != nil {
-		panic(err)
+		_ = entryFormTemplate.ExecuteTemplate(w, "error", "Failed to load the page!")
+		return
 	}
 }
 
@@ -83,10 +85,12 @@ func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 
 	entryFormTemplate, err := template.New("layout.html").Funcs(template.FuncMap{"capital": strings.Title}).ParseGlob("templates/*html")
 	if err != nil {
-		panic(err)
+		_ = entryFormTemplate.ExecuteTemplate(w, "error", "Failed to load the page!")
+		return
 	}
 	var from string
 	var to string
+	// getting the form data from the user input
 	from = r.URL.Query().Get("from")
 	to = r.URL.Query().Get("to")
 	// this is the structure of all app data including the result of the TravelPerk API and the user form inputs
@@ -97,8 +101,7 @@ func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 	trip, err := c.getTripRequirements(TripStruct)
 
 	if err != nil {
-		fmt.Printf("\nReceived error: %v", err.Error())
-		_ = entryFormTemplate.ExecuteTemplate(w, "error", err.Error())
+		_ = entryFormTemplate.ExecuteTemplate(w, "error", "Failed to access the Covid page data!")
 		return
 	}
 	TripStruct.Result = *trip
@@ -106,7 +109,7 @@ func (c *Client) searchEntry(w http.ResponseWriter, r *http.Request) {
 	err = entryFormTemplate.ExecuteTemplate(w, "layout", TripStruct)
 	if err != nil {
 		fmt.Printf("err %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		_ = entryFormTemplate.ExecuteTemplate(w, "error", "The Covid Page Data Failed to Load!")
 	}
 }
 
